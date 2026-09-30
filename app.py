@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # -----------------------------------------------------------------------------
-# 1. PAGE CONFIGURATION & CUSTOM STYLING
+# 1. PAGE CONFIGURATION & CUSTOM GLASSMORPHISM STYLING
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Campus Go | P2P Mobility & Rentals",
@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Modern Dark Glassmorphism CSS Theme
+# Custom Dark Glassmorphism Theme
 st.markdown("""
 <style>
     /* Main App Background */
@@ -22,7 +22,7 @@ st.markdown("""
     
     /* Header Gradient Text */
     .title-text {
-        font-size: 2.2rem;
+        font-size: 2.3rem;
         font-weight: 800;
         background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
         -webkit-background-clip: text;
@@ -41,7 +41,7 @@ st.markdown("""
         border: 1px solid #30363d;
         border-radius: 12px;
         padding: 18px;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         transition: transform 0.2s ease, border-color 0.2s ease;
     }
@@ -50,7 +50,7 @@ st.markdown("""
         transform: translateY(-2px);
     }
 
-    /* Status Badges */
+    /* Badges */
     .badge-security {
         background-color: rgba(234, 179, 8, 0.15);
         color: #facc15;
@@ -80,7 +80,7 @@ st.markdown("""
         font-weight: 600;
     }
 
-    /* Tab Custom Styling */
+    /* Tab Custom Navigation Styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
         background-color: #0d1117;
@@ -124,7 +124,7 @@ if "vehicles" not in st.session_state:
             "type": "Scooty",
             "rate": 35,
             "location": "Main Gate Parking",
-            "security": "₹500 Deposit + Hostel ID",
+            "security": "₹500 Cash Deposit + Hostel ID",
             "owner": "rahul@cup.edu.in",
             "status": "Available"
         }
@@ -134,31 +134,30 @@ if "active_rentals" not in st.session_state:
     st.session_state.active_rentals = []
 
 # -----------------------------------------------------------------------------
-# 3. DIALOG / POP-UP MODAL FOR RESERVATIONS
+# 3. DIALOG / POP-UP MODAL FOR RESERVATIONS (PREVENTS DISAPPEARING BUG)
 # -----------------------------------------------------------------------------
 @st.dialog("⚡ Confirm Vehicle Reservation")
 def reservation_modal(vehicle):
     st.write(f"### **{vehicle['model']}** ({vehicle['type']})")
     st.write(f"💵 **Rate:** ₹{vehicle['rate']}/hr")
-    st.write(f"🔒 **Required Security:** `{vehicle['security']}`")
-    st.write(f"📍 **Pickup:** {vehicle['location']}")
+    st.write(f"🔒 **Required Security Hold:** `{vehicle['security']}`")
+    st.write(f"📍 **Pickup Location:** {vehicle['location']}")
     st.write(f"👤 **Owner:** {vehicle['owner']}")
     
     st.divider()
-    renter_phone = st.text_input("Enter Mobile Number for Contact", placeholder="+91 XXXXX XXXXX")
-    notes = st.text_input("Expected Rental Duration (Hours)", value="2")
+    renter_phone = st.text_input("Mobile Number for Contact", placeholder="+91 XXXXX XXXXX")
+    duration = st.text_input("Expected Rental Duration (Hours)", value="2")
     
-    if st.button("🚀 Confirm Reservation Now", use_container_width=True):
+    if st.button("🚀 Confirm Booking", use_container_width=True, type="primary"):
         if not renter_phone:
-            st.error("Please enter your phone number.")
+            st.error("Please provide your mobile number.")
         else:
-            # Move vehicle to active rentals
             vehicle["status"] = "Reserved"
             st.session_state.active_rentals.append({
                 "booking_id": f"BK-{vehicle['id']}",
                 "vehicle": vehicle,
                 "renter_phone": renter_phone,
-                "duration": notes,
+                "duration": duration,
                 "payment_status": "⏳ Pending Payment",
                 "before_photo": None,
                 "after_photo": None
@@ -186,7 +185,7 @@ with st.sidebar:
     st.info("💡 **Campus Go Tip:** Make sure to upload pre-rental condition photos before handing over vehicle keys!")
 
 # -----------------------------------------------------------------------------
-# 5. MAIN APP HEADER & TAB SYSTEM
+# 5. MAIN HEADER
 # -----------------------------------------------------------------------------
 st.markdown('<div class="title-text">Campus Go</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-text">Unified Campus Mobility & P2P Marketplace • Central University of Punjab</div>', unsafe_allow_html=True)
@@ -200,12 +199,70 @@ tab_radar, tab_rentals, tab_sharing, tab_market = st.tabs([
 ])
 
 # -----------------------------------------------------------------------------
-# 6. TAB 2: P2P RENTALS & INSPECTION HUB
+# 6. TAB 1: LIVE TRANSIT RADAR (INTERACTIVE GPS MAP)
+# -----------------------------------------------------------------------------
+with tab_radar:
+    st.write("## 🛰️ Live Campus Transit Radar")
+
+    # Metrics Bar
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Active Fleet", "3 Shuttles")
+    m2.metric("Next Pickup", "~2 Mins (Hostel 3)")
+    m3.metric("GPS Connection", "🟢 Live Sync")
+
+    st.divider()
+
+    # Coordinates centered around Central University of Punjab (Bathinda campus)
+    shuttle_data = pd.DataFrame([
+        {
+            "Vehicle": "⚡ E-Cart #1 (Hostel Shuttle)",
+            "lat": 30.1553,
+            "lon": 74.9387,
+            "Status": "Moving -> Academic Block",
+            "Speed": "14 km/h"
+        },
+        {
+            "Vehicle": "⚡ E-Cart #2 (Library Line)",
+            "lat": 30.1538,
+            "lon": 74.9365,
+            "Status": "Boarding at Hostel 3",
+            "Speed": "0 km/h"
+        },
+        {
+            "Vehicle": "🚌 Main Gate Express Shuttle",
+            "lat": 30.1570,
+            "lon": 74.9405,
+            "Status": "Arriving Main Gate",
+            "Speed": "18 km/h"
+        }
+    ])
+
+    # Interactive Map Display
+    st.write("### 📍 Live Fleet Map")
+    st.map(
+        shuttle_data,
+        latitude="lat",
+        longitude="lon",
+        size=30,
+        color="#38bdf8",
+        zoom=15
+    )
+
+    # Live Fleet Status Table
+    st.write("### 🚌 Active Carts & Shuttles Status")
+    st.dataframe(
+        shuttle_data[["Vehicle", "Status", "Speed"]],
+        use_container_width=True,
+        hide_index=True
+    )
+
+# -----------------------------------------------------------------------------
+# 7. TAB 2: P2P RENTALS & INSPECTION HUB
 # -----------------------------------------------------------------------------
 with tab_rentals:
     st.write("## 🛵 Short-Term Vehicle Rentals")
 
-    # --- TOP METRICS DISPLAY ---
+    # Metrics Display
     m1, m2, m3 = st.columns(3)
     available_count = len([v for v in st.session_state.vehicles if v['status'] == 'Available'])
     m1.metric("Available Vehicles", f"{available_count} Active")
@@ -251,9 +308,8 @@ with tab_rentals:
                 st.session_state.vehicles.append(new_item)
                 st.success("✨ Vehicle listed successfully!")
                 st.rerun()
-                
             else:
-                st.error("Please fill in the Vehicle Model and Pickup Location.")
+                st.error("Please enter the Vehicle Model and Pickup Location.")
 
     st.write("### 🚲 Available Vehicles for Rent")
     
@@ -261,7 +317,7 @@ with tab_rentals:
     available_list = [v for v in st.session_state.vehicles if v["status"] == "Available"]
 
     if not available_list:
-        st.info("No vehicles available right now. Check back soon or list your own!")
+        st.info("No vehicles available right now. List your vehicle above!")
     else:
         # Display as a responsive 2-column card grid
         cols = st.columns(2)
@@ -294,7 +350,7 @@ with tab_rentals:
                 
                 b_col1, b_col2, b_col3 = st.columns([1, 1, 1])
 
-                # COLUMN 1: BEFORE-RENT PHOTO
+                # 1. BEFORE-RENT PHOTO
                 with b_col1:
                     st.write("**1. Pre-Rental Security Photo**")
                     up_before = st.file_uploader(
@@ -304,10 +360,10 @@ with tab_rentals:
                     )
                     if up_before:
                         booking["before_photo"] = up_before
-                        st.image(up_before, caption="Pre-Rental Inspection", use_container_width=True)
+                        st.image(up_before, caption="Pre-Rental Inspection Logged", use_container_width=True)
                         st.success("Pre-inspection logged!")
 
-                # COLUMN 2: PAYMENT TRACKER STATUS
+                # 2. PAYMENT TRACKER STATUS
                 with b_col2:
                     st.write("**2. Rent Payment Tracker**")
                     pay_state = st.selectbox(
@@ -322,7 +378,7 @@ with tab_rentals:
                     else:
                         st.markdown(f'<span class="badge-status-pending">{pay_state}</span>', unsafe_allow_html=True)
 
-                # COLUMN 3: AFTER-RENT PHOTO
+                # 3. AFTER-RENT PHOTO
                 with b_col3:
                     st.write("**3. Post-Rental Return Photo**")
                     up_after = st.file_uploader(
@@ -332,36 +388,33 @@ with tab_rentals:
                     )
                     if up_after:
                         booking["after_photo"] = up_after
-                        st.image(up_after, caption="Post-Rental Inspection", use_container_width=True)
+                        st.image(up_after, caption="Post-Rental Inspection Logged", use_container_width=True)
                         st.info("Post-inspection logged!")
 
                 st.write("")
-                # Complete Order Button
-                if st.button("🏁 Complete Trip & Release Hold", key=f"close_{booking['booking_id']}"):
+                # Complete Order Button with Validation Checks
+                if st.button("🏁 Complete Trip & Release Hold", key=f"close_{booking['booking_id']}", type="primary"):
                     if not booking["before_photo"]:
                         st.warning("⚠️ Please upload a 'Before Rent' inspection photo first.")
                     elif "Pending" in booking["payment_status"]:
-                        st.warning("⚠️ Please resolve the payment status before closing the rental.")
+                        st.warning("⚠️ Please mark payment as completed before closing the rental.")
                     else:
                         veh["status"] = "Available"
                         st.session_state.active_rentals.remove(booking)
                         st.balloons()
-                        st.success(f"Trip {booking['booking_id']} successfully completed and logged!")
+                        st.success(f"Trip {booking['booking_id']} successfully completed!")
                         st.rerun()
 
             st.divider()
 
 # -----------------------------------------------------------------------------
-# 7. PLACEHOLDER TABS (RADAR, HOP-ON, MARKETPLACE)
+# 8. TAB 3 & 4: HOP-ON SHARING & MARKETPLACE
 # -----------------------------------------------------------------------------
-with tab_radar:
-    st.write("## 🛰️ Live Campus Transit Radar")
-    st.info("Real-time GPS tracking for campus shuttles and electric carts will render here.")
-
 with tab_sharing:
     st.write("## 🚗 Hop-On Campus Ride Sharing")
-    st.info("Peer-to-peer ride pooling and campus hop-on requests.")
+    st.info("Peer-to-peer ride pooling and campus hop-on requests will render here.")
 
 with tab_market:
     st.write("## 🛒 Student Marketplace")
-    st.info("Buy & sell second-hand study material, mattresses, and electronics.")
+    st.info("Buy & sell second-hand study material, mattresses, and campus gear.")
+
