@@ -1,3 +1,4 @@
+import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from streamlit_autorefresh import st_autorefresh
@@ -32,7 +33,7 @@ role_selection = sidebar.radio("App View", ["Student View", "Driver Duty Mode"])
 if role_selection == "Driver Duty Mode":
     st.subheader("🛺 E-Rickshaw Driver Terminal")
     st.info("Zero-Distraction Mode Active. Keep device mounted on dashboard.")
-
+    
     col1, col2 = st.columns(2)
     with col1:
         if not st.session_state.driver_shift:
@@ -43,7 +44,7 @@ if role_selection == "Driver Duty Mode":
             if st.button("🔴 END SHIFT", use_container_width=True):
                 st.session_state.driver_shift = False
                 st.rerun()
-
+                
     with col2:
         status_str = "🟢 Active & Broadcasting GPS" if st.session_state.driver_shift else "🔴 Offline"
         st.metric(label="Duty Status", value=status_str)
@@ -66,25 +67,25 @@ else:
     with tab1:
         st.subheader("Live E-Rickshaw Radar")
         col_map, col_info = st.columns([3, 1])
-
+        
         with col_map:
             m = folium.Map(location=[CUPB_LAT, CUPB_LNG], zoom_start=16)
-
+            
             folium.Marker(
                 [CUPB_LAT, CUPB_LNG], 
                 popup="CUPB Main Academic Block", 
                 icon=folium.Icon(color="blue", icon="university", prefix="fa")
             ).add_to(m)
-
+            
             for e in E_RICKSHAWS_DATA:
                 folium.Marker(
                     [e["lat"], e["lng"]],
                     popup=f"E-Rickshaw: {e['id']}\nDriver: {e['driver']}",
                     icon=folium.Icon(color="green", icon="car", prefix="fa")
                 ).add_to(m)
-
+                
             st_folium(m, width=800, height=450, key=f"map_{refresh_count}")
-
+            
         with col_info:
             st.markdown("### Nearby Vehicles")
             for e in E_RICKSHAWS_DATA:
@@ -96,9 +97,9 @@ else:
     # ------------------ TAB 2: RENTALS ------------------
     with tab2:
         st.subheader("P2P Short-Term Vehicle Rentals")
-
+        
         col_list, col_add = st.columns([2, 1])
-
+        
         with col_list:
             available_rentals = [r for r in st.session_state.rentals if r["status"] == "Available"]
             for r in available_rentals:
@@ -110,7 +111,7 @@ else:
                         r["status"] = "Rented"
                         st.success(f"Reserved! Connect with {r['owner']} at {r['location']} for key handover.")
                         st.rerun()
-
+                        
         with col_add:
             st.markdown("### List Your Vehicle")
             with st.form("rent_form"):
@@ -138,14 +139,14 @@ else:
     with tab3:
         st.subheader("Campus Hop-On (Micro-Pillion Sharing)")
         women_only_filter = st.checkbox("🛡️ Show Women-Only Rides Only")
-
+        
         col_rides, col_offer = st.columns([2, 1])
-
+        
         with col_rides:
             filtered_rides = st.session_state.hopon
             if women_only_filter:
                 filtered_rides = [h for h in filtered_rides if h["women_only"]]
-
+                
             for h in filtered_rides:
                 with st.container(border=True):
                     badge = "🛡️ Women-to-Women" if h['women_only'] else "🌐 Open to All"
@@ -188,7 +189,7 @@ else:
             max_price = st.slider("Max Price (₹)", min_value=100, max_value=5000, value=5000, step=100)
 
         col_items, col_sell = st.columns([2, 1])
-
+        
         with col_items:
             m_filtered = st.session_state.marketplace
             if selected_cat != "All":
@@ -205,8 +206,7 @@ else:
                         st.write(f"_{item['desc']}_")
                         st.caption(f"Seller: `{item['seller']}`")
                         mailto_link = f"mailto:{item['seller']}?subject=Inquiry about {item['title']} on Campus Go"
-                        st.markdown(f'<a href="{mailto_link}" target="_blank"><button style="width:100%; padding:8px; background-color:#2e7d32; color:white; border:none; border-radius:4px; cursor:pointer;">✉️ Email Seller</button></a>',unsafe_allow_html=True )
- 
+                        st.markdown(f'<a href="{mailto_link}" target="_blank"><button style="width:100%; padding:8px; background-color:#2e7d32; color:white; border:none; border-radius:4px; cursor:pointer;">✉️ Email Seller</button></a>', unsafe_allow_html=True)
 
         with col_sell:
             st.markdown("### Resell an Item")
@@ -229,3 +229,4 @@ else:
                     })
                     st.success("Item posted!")
                     st.rerun()
+
