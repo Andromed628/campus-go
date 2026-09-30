@@ -4,8 +4,16 @@ import folium
 from streamlit_folium import st_folium
 from streamlit_autorefresh import st_autorefresh
 from streamlit_geolocation import streamlit_geolocation
-from mock_data import CUPB_LAT, CUPB_LNG, E_RICKSHAWS_DATA, RENTALS_DATA, HOPON_DATA, MARKETPLACE_DATA
+from mock_data import (
+    CUPB_LAT, 
+    CUPB_LNG, 
+    E_RICKSHAWS_DATA, 
+    RENTALS_DATA, 
+    HOPON_DATA, 
+    MARKETPLACE_DATA
+)
 
+# --- Page Configuration ---
 st.set_page_config(page_title="Campus Go", page_icon="🛺", layout="wide")
 
 # --- Initialize Session State ---
@@ -20,7 +28,7 @@ if "hopon" not in st.session_state:
 if "marketplace" not in st.session_state:
     st.session_state.marketplace = MARKETPLACE_DATA
 
-# --- Header & Sidebar ---
+# --- Main Header & Sidebar Navigation ---
 st.title("🛺 Campus Go")
 st.caption("Unified Campus Mobility Platform • Central University of Punjab")
 
@@ -30,7 +38,10 @@ user_email = sidebar.text_input("Institutional Email", value=st.session_state.us
 st.session_state.user_email = user_email
 role_selection = sidebar.radio("App View", ["Student View", "Driver Duty Mode"])
 
-# ==================== DRIVER DUTY MODE ====================
+
+# ==============================================================================
+# 1. DRIVER DUTY MODE TERMINAL
+# ==============================================================================
 if role_selection == "Driver Duty Mode":
     st.subheader("🛺 E-Rickshaw Driver Terminal")
     st.info("Zero-Distraction Mode Active. Keep device mounted on dashboard.")
@@ -58,25 +69,28 @@ if role_selection == "Driver Duty Mode":
     else:
         st.caption("Tap location icon above to allow tablet GPS streaming.")
 
-# ==================== STUDENT VIEW ====================
+
+# ==============================================================================
+# 2. STUDENT VIEW INTERFACE
+# ==============================================================================
 else:
-    # Auto-refresh app every 3 seconds for live tracking
-    refresh_count = st_autorefresh(interval=3000, limit=None, key="live_map_sync")
+    # Smooth 10-second auto-refresh (prevents map flickering)
+    st_autorefresh(interval=10000, limit=None, key="live_map_sync")
 
     tab1, tab2, tab3, tab4 = st.tabs(["🛺 Live Transit", "🚲 Rentals", "🛵 Hop-On", "🏷️ Marketplace"])
 
-    # ------------------ TAB 1: LIVE TRANSIT ------------------
+    # ------------------ TAB 1: LIVE TRANSIT RADAR ------------------
     with tab1:
         st.subheader("Live E-Rickshaw Radar")
         col_map, col_info = st.columns([3, 1])
         
-        # Simulate slight live movement on each 3-second refresh
+        # Simulate slight real-time movement across campus
         for e in E_RICKSHAWS_DATA:
-            e["lat"] += random.choice([-0.00006, 0.00006, 0.0])
-            e["lng"] += random.choice([-0.00006, 0.00006, 0.0])
+            e["lat"] += random.choice([-0.00005, 0.00005, 0.0])
+            e["lng"] += random.choice([-0.00005, 0.00005, 0.0])
 
         with col_map:
-            # Satellite imagery tiles for detailed campus view
+            # High-resolution Esri Satellite Map
             m = folium.Map(
                 location=[CUPB_LAT, CUPB_LNG], 
                 zoom_start=17,
@@ -84,14 +98,14 @@ else:
                 attr='Esri'
             )
             
-            # Central Campus Landmark Marker
+            # Central Academic Landmark
             folium.Marker(
                 [CUPB_LAT, CUPB_LNG], 
                 popup="CUPB Main Academic Block", 
                 icon=folium.Icon(color="blue", icon="university", prefix="fa")
             ).add_to(m)
             
-            # Active Moving E-Rickshaws
+            # Moving E-Rickshaws
             for e in E_RICKSHAWS_DATA:
                 folium.Marker(
                     [e["lat"], e["lng"]],
@@ -99,7 +113,8 @@ else:
                     icon=folium.Icon(color="green", icon="car", prefix="fa")
                 ).add_to(m)
                 
-            st_folium(m, width=800, height=450, key=f"map_{refresh_count}")
+            # Fixed key eliminates map iframe destruction & blinking
+            st_folium(m, width=800, height=450, key="campus_radar_map")
             
         with col_info:
             st.markdown("### Nearby Vehicles")
@@ -109,7 +124,7 @@ else:
                     st.caption(f"Driver: {e['driver']}")
                     st.success(f"ETA: ~{e['eta_min']} mins away")
 
-    # ------------------ TAB 2: RENTALS ------------------
+    # ------------------ TAB 2: P2P RENTALS ------------------
     with tab2:
         st.subheader("P2P Short-Term Vehicle Rentals")
         
@@ -150,7 +165,7 @@ else:
                     st.success("Vehicle listed!")
                     st.rerun()
 
-    # ------------------ TAB 3: HOP-ON ------------------
+    # ------------------ TAB 3: HOP-ON RIDE SHARE ------------------
     with tab3:
         st.subheader("Campus Hop-On (Micro-Pillion Sharing)")
         women_only_filter = st.checkbox("🛡️ Show Women-Only Rides Only")
@@ -194,7 +209,7 @@ else:
                     st.success("Ride published!")
                     st.rerun()
 
-    # ------------------ TAB 4: MARKETPLACE ------------------
+    # ------------------ TAB 4: SECOND-HAND MARKETPLACE ------------------
     with tab4:
         st.subheader("Second-Hand Marketplace")
         col_cat, col_price = st.columns(2)
@@ -221,7 +236,10 @@ else:
                         st.write(f"_{item['desc']}_")
                         st.caption(f"Seller: `{item['seller']}`")
                         mailto_link = f"mailto:{item['seller']}?subject=Inquiry about {item['title']} on Campus Go"
-                        st.markdown(f'<a href="{mailto_link}" target="_blank"><button style="width:100%; padding:8px; background-color:#2e7d32; color:white; border:none; border-radius:4px; cursor:pointer;">✉️ Email Seller</button></a>', unsafe_allow_html=True)
+                        st.markdown(
+                            f'<a href="{mailto_link}" target="_blank"><button style="width:100%; padding:8px; background-color:#2e7d32; color:white; border:none; border-radius:4px; cursor:pointer;">✉️ Email Seller</button></a>', 
+                            unsafe_allow_html=True
+                        )
 
         with col_sell:
             st.markdown("### Resell an Item")
