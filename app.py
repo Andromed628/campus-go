@@ -1,3 +1,4 @@
+import random
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
@@ -7,7 +8,7 @@ from mock_data import CUPB_LAT, CUPB_LNG, E_RICKSHAWS_DATA, RENTALS_DATA, HOPON_
 
 st.set_page_config(page_title="Campus Go", page_icon="🛺", layout="wide")
 
-# --- Initialize State ---
+# --- Initialize Session State ---
 if "user_email" not in st.session_state:
     st.session_state.user_email = "student@cup.edu.in"
 if "driver_shift" not in st.session_state:
@@ -59,6 +60,7 @@ if role_selection == "Driver Duty Mode":
 
 # ==================== STUDENT VIEW ====================
 else:
+    # Auto-refresh app every 3 seconds for live tracking
     refresh_count = st_autorefresh(interval=3000, limit=None, key="live_map_sync")
 
     tab1, tab2, tab3, tab4 = st.tabs(["🛺 Live Transit", "🚲 Rentals", "🛵 Hop-On", "🏷️ Marketplace"])
@@ -68,15 +70,28 @@ else:
         st.subheader("Live E-Rickshaw Radar")
         col_map, col_info = st.columns([3, 1])
         
+        # Simulate slight live movement on each 3-second refresh
+        for e in E_RICKSHAWS_DATA:
+            e["lat"] += random.choice([-0.00006, 0.00006, 0.0])
+            e["lng"] += random.choice([-0.00006, 0.00006, 0.0])
+
         with col_map:
-            m = folium.Map(location=[CUPB_LAT, CUPB_LNG], zoom_start=16)
+            # Satellite imagery tiles for detailed campus view
+            m = folium.Map(
+                location=[CUPB_LAT, CUPB_LNG], 
+                zoom_start=17,
+                tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                attr='Esri'
+            )
             
+            # Central Campus Landmark Marker
             folium.Marker(
                 [CUPB_LAT, CUPB_LNG], 
                 popup="CUPB Main Academic Block", 
                 icon=folium.Icon(color="blue", icon="university", prefix="fa")
             ).add_to(m)
             
+            # Active Moving E-Rickshaws
             for e in E_RICKSHAWS_DATA:
                 folium.Marker(
                     [e["lat"], e["lng"]],
@@ -229,4 +244,3 @@ else:
                     })
                     st.success("Item posted!")
                     st.rerun()
-
