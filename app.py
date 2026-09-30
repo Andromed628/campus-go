@@ -1,4 +1,3 @@
-import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from streamlit_autorefresh import st_autorefresh
@@ -206,7 +205,8 @@ else:
                         st.write(f"_{item['desc']}_")
                         st.caption(f"Seller: `{item['seller']}`")
                         mailto_link = f"mailto:{item['seller']}?subject=Inquiry about {item['title']} on Campus Go"
-                        st.markdown(f'<a href="{mailto_link}" target="_blank"><button style="width:100%; padding:8px; background-color:#2e7d32; color:white; border:none; border-radius:4px; cursor:pointer;">✉️ Email Seller</button></a>', unsafe_html=True)
+                        st.markdown(f'<a href="{mailto_link}" target="_blank"><button style="width:100%; padding:8px; background-color:#2e7d32; color:white; border:none; border-radius:4px; cursor:pointer;">✉️ Email Seller</button></a>',unsafe_allow_html=True )
+ 
 
         with col_sell:
             st.markdown("### Resell an Item")
