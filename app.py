@@ -1,6 +1,7 @@
 import random
 import pandas as pd
 import streamlit as st
+import pydeck as pdk
 from streamlit_autorefresh import st_autorefresh
 from streamlit_geolocation import streamlit_geolocation
 from mock_data import (
@@ -17,7 +18,6 @@ from mock_data import (
 # ==============================================================================
 st.set_page_config(page_title="Campus Go", page_icon="📍", layout="wide")
 
-# Custom CSS for a clean, modern UI
 st.markdown("""
     <style>
     .main-header { 
@@ -109,10 +109,10 @@ if role_selection == "🛞 Driver Duty Mode":
 
 
 # ==============================================================================
-# 2. STUDENT VIEW (STABLE NATIVE RENDERER)
+# 2. STUDENT VIEW (PYDECK DETAILED MAP)
 # ==============================================================================
 else:
-    # Auto-refreshes data smoothly every 5 seconds (Zero flickering with st.map)
+    # Auto-refreshes data smoothly every 5 seconds (Zero flickering)
     st_autorefresh(interval=5000, limit=None, key="live_map_sync")
 
     tab1, tab2, tab3, tab4 = st.tabs(["🗺️ Live Transit Radar", "🚲 P2P Rentals", "🛵 Hop-On Sharing", "🏷️ Marketplace"])
@@ -120,7 +120,7 @@ else:
     # ------------------ TAB 1: LIVE TRANSIT RADAR ------------------
     with tab1:
         st.subheader("Live Campus Transit Radar")
-        st.caption("Native WebGL rendering (Brave Shield compatible, zero screen flickering).")
+        st.caption("High-detail campus roadmap (Brave Shield compatible, zero screen flickering).")
         
         col_map, col_info = st.columns([2.5, 1])
         
@@ -130,21 +130,59 @@ else:
         for v in st.session_state.simulated_vehicles:
             v["lat"] += random.choice([-0.00004, 0.00004, 0.0])
             v["lng"] += random.choice([-0.00004, 0.00004, 0.0])
-            map_points.append({"lat": v["lat"], "lon": v["lng"]})
+            map_points.append({"lat": v["lat"], "lon": v["lng"], "label": f"Rickshaw {v['id']}"})
             
         # Append real driver coordinates if active
         if st.session_state.driver_shift and st.session_state.driver_loc:
             map_points.append({
                 "lat": st.session_state.driver_loc["lat"], 
-                "lon": st.session_state.driver_loc["lon"]
+                "lon": st.session_state.driver_loc["lon"],
+                "label": "LIVE DEMO DRIVER"
             })
             
         df_map = pd.DataFrame(map_points)
 
         with col_map:
             if not df_map.empty:
-                # Native Mapbox/Deck.gl map: loads instantly across all browsers
-                st.map(df_map, zoom=16, use_container_width=True)
+                # View state focused directly on CUPB Campus
+                view_state = pdk.ViewState(
+                    latitude=CUPB_LAT,
+                    longitude=CUPB_LNG,
+                    zoom=15.5,
+                    pitch=0
+                )
+                
+                # Clean Rickshaw Vehicle Dots (Green)
+                rickshaw_layer = pdk.Layer(
+                    "ScatterplotLayer",
+                    data=df_map,
+                    get_position="[lon, lat]",
+                    get_color="[16, 185, 129, 230]",
+                    get_radius=15,
+                    pickable=True,
+                )
+                
+                # Academic Center Marker (Blue)
+                center_df = pd.DataFrame([{"lat": CUPB_LAT, "lon": CUPB_LNG, "label": "CUPB Main Academic Block"}])
+                center_layer = pdk.Layer(
+                    "ScatterplotLayer",
+                    data=center_df,
+                    get_position="[lon, lat]",
+                    get_color="[37, 99, 235, 255]",
+                    get_radius=22,
+                    pickable=True,
+                )
+
+                # Detailed Carto Voyager Map Style showing roads, buildings, and campus labels
+                st.pydeck_chart(
+                    pdk.Deck(
+                        layers=[center_layer, rickshaw_layer],
+                        initial_view_state=view_state,
+                        map_style="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
+                        tooltip={"text": "{label}"}
+                    ),
+                    use_container_width=True
+                )
             else:
                 st.warning("No active vehicles detected.")
             
