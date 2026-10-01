@@ -395,7 +395,8 @@ with tab_rentals:
     else:
         cols = st.columns(2)
         for idx, vehicle in enumerate(available_list):
-            with cols[idx % 2]:
+            selected_col = cols[idx % 2]
+            with selected_col:
                 st.markdown(f"""
                 <div class="custom-card">
                     <h4>🚲 {vehicle['model']} <span style="font-size:0.8rem; color:#8b949e;">({vehicle['type']})</span></h4>
@@ -525,5 +526,4 @@ with tab_sharing:
         st.info("No active ride offers currently. Offer one above!")
     else:
         r_cols = st.columns(2)
-        for idx, ride in enumerate(st.session_state.rides):
-            with r_cols[idx % 
+        for idx, ride in enumerate(st.session_stat
