@@ -87,7 +87,7 @@ if "market_items" not in st.session_state:
 def reservation_modal(v):
     st.write(f"### {v['model']} ({v['type']})")
     st.write(f"💵 Rate: ₹{v['rate']}/hr | 📍 Location: {v['location']}")
-    st.write(f"🔒 Security Hold: `{v['security']}`")
+    st.write(f"🔒 Security Hold Required: `{v['security']}`")
     phone = st.text_input("Mobile Number")
     duration = st.text_input("Duration (Hours)", value="2")
     if st.button("🚀 Confirm Booking", type="primary", use_container_width=True):
@@ -96,7 +96,8 @@ def reservation_modal(v):
             st.session_state.active_rentals.append({
                 "booking_id": f"BK-{v['id']}",
                 "vehicle": v, "phone": phone, "duration": duration,
-                "payment_status": "Pending", "before_photo": None
+                "payment_status": "Pending", "before_photo": None, "after_photo": None,
+                "pre_notes": "", "post_notes": ""
             })
             st.success("Reserved successfully!")
             st.rerun()
@@ -187,7 +188,7 @@ else:
         st.map(shuttles_df, latitude="lat", longitude="lon", size=25, zoom=15)
         st.dataframe(shuttles_df[["Vehicle", "Status", "Speed"]], use_container_width=True, hide_index=True)
 
-    # TAB 2: P2P RENTALS
+    # TAB 2: P2P RENTALS & INSPECTION / SECURITY
     with t2:
         st.subheader("🛵 Short-Term Vehicle Rentals")
         
@@ -197,7 +198,7 @@ else:
             v_rat = col1.number_input("Rate (₹/hr)", min_value=5, value=10, key="add_rat")
             v_loc = col2.text_input("Pickup Location", key="add_loc")
             v_typ = col2.selectbox("Type", ["Bicycle", "Scooty", "Motorbike", "E-Cycle"], key="add_typ")
-            v_sec = st.selectbox("Security Hold", ["Student ID", "Hostel ID", "₹200 Deposit", "₹500 Deposit"], key="add_sec")
+            v_sec = st.selectbox("Security Hold Requirement", ["Student ID", "Hostel ID", "₹200 Deposit", "₹500 Deposit"], key="add_sec")
             if st.button("Publish Listing", type="primary"):
                 if v_mod and v_loc:
                     st.session_state.vehicles.append({
@@ -216,30 +217,66 @@ else:
                 st.markdown(f"""
                 <div class="custom-card">
                     <h4>🚲 {v['model']} ({v['type']})</h4>
-                    <p>Rate: ₹{v['rate']}/hr | Location: {v['location']}</p>
-                    <p>Owner: {v['owner']}</p>
-                    <span class="badge">Security: {v['security']}</span>
+                    <p><b>Rate:</b> ₹{v['rate']}/hr | <b>Location:</b> {v['location']}</p>
+                    <p><b>Owner:</b> {v['owner']}</p>
+                    <span class="badge">🔒 Required Security: {v['security']}</span>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button("🔑 Reserve", key=f"res_{v['id']}", use_container_width=True):
+                if st.button("🔑 Reserve Vehicle", key=f"res_{v['id']}", use_container_width=True):
                     reservation_modal(v)
 
         st.divider()
-        st.write("### 📋 Active Rentals & Pre/Post Inspection")
+        st.subheader("📋 Active Rentals: Pre/Post Inspection & Security Management")
+        
+        if not st.session_state.active_rentals:
+            st.info("No active rentals currently. Reserve a vehicle above to test inspection logs and security hold controls!")
+        
         for bk in st.session_state.active_rentals:
             v = bk["vehicle"]
-            st.write(f"**Booking:** `{bk['booking_id']}` - {v['model']}")
-            up = st.file_uploader("Pre-rental photo", type=["jpg", "png"], key=f"up_{bk['booking_id']}")
-            if up:
-                bk["before_photo"] = up
-                st.success("Photo logged!")
-            pay = st.selectbox("Payment Status", ["Pending", "Paid UPI", "Paid Cash"], key=f"p_{bk['booking_id']}")
-            bk["payment_status"] = pay
-            if st.button("Complete Trip", key=f"c_{bk['booking_id']}", type="primary"):
-                v["status"] = "Available"
-                st.session_state.active_rentals.remove(bk)
-                st.success("Completed!")
-                st.rerun()
+            with st.expander(f"🔑 Active Booking: `{bk['booking_id']}` — {v['model']}", expanded=True):
+                st.markdown(f"**Owner:** {v['owner']} | **Renter Phone:** {bk['phone']} | **Duration:** {bk['duration']} hrs")
+                
+                # Security Hold Box
+                st.info(f"🔒 **Security Hold Verification:** `{v['security']}` (Verified prior to key handover)")
+                
+                c_pre, c_post = st.columns(2)
+                
+                # Pre-Inspection
+                with c_pre:
+                    st.markdown("#### 📸 1. Pre-Rental Inspection (Pickup)")
+                    pre_photo = st.file_uploader("Upload Pickup Photo", type=["jpg", "png", "jpeg"], key=f"pre_pic_{bk['booking_id']}")
+                    if pre_photo:
+                        bk["before_photo"] = pre_photo
+                        st.image(pre_photo, caption="Pickup Inspection Photo", use_container_width=True)
+                    pre_notes = st.text_area("Pre-existing Scratches / Notes", placeholder="e.g. Minor scratch on rear mudguard", key=f"pre_note_{bk['booking_id']}")
+                    bk["pre_notes"] = pre_notes
+
+                # Post-Inspection
+                with c_post:
+                    st.markdown("#### 📸 2. Post-Rental Inspection (Return)")
+                    post_photo = st.file_uploader("Upload Return Photo", type=["jpg", "png", "jpeg"], key=f"post_pic_{bk['booking_id']}")
+                    if post_photo:
+                        bk["after_photo"] = post_photo
+                        st.image(post_photo, caption="Return Inspection Photo", use_container_width=True)
+                    post_notes = st.text_area("Return Condition / Damage Check", placeholder="e.g. Returned clean with zero damage", key=f"post_note_{bk['booking_id']}")
+                    bk["post_notes"] = post_notes
+
+                st.markdown("---")
+                col_pay, col_sec_rel = st.columns(2)
+                with col_pay:
+                    pay = st.selectbox("Payment Status", ["Pending", "Paid UPI", "Paid Cash"], key=f"p_{bk['booking_id']}")
+                    bk["payment_status"] = pay
+                with col_sec_rel:
+                    sec_released = st.checkbox("✅ Security Hold Released (ID / Deposit Returned)", key=f"sec_rel_{bk['booking_id']}")
+
+                if st.button("🏁 Finalize Trip & Return Vehicle", key=f"c_{bk['booking_id']}", type="primary", use_container_width=True):
+                    if not sec_released:
+                        st.warning("Please verify and check 'Security Hold Released' before returning the vehicle!")
+                    else:
+                        v["status"] = "Available"
+                        st.session_state.active_rentals.remove(bk)
+                        st.success("Trip finalized! Security hold released and vehicle returned to available fleet.")
+                        st.rerun()
 
     # TAB 3: HOP-ON SHARING
     with t3:
@@ -272,7 +309,7 @@ else:
                     <h4>🚗 {r['from_loc']} ➔ {r['to_loc']}</h4>
                     <p>Departure: {r['time']} | Vehicle: {r['vehicle']}</p>
                     <p>Driver: {r['driver']}</p>
-                    <span class="badge">Seats: {r['seats']}</span>
+                    <span class="badge">Seats Available: {r['seats']}</span>
                 </div>
                 """, unsafe_allow_html=True)
                 if r["seats"] > 0:
@@ -281,7 +318,7 @@ else:
                 else:
                     st.button("Full", key=f"full_{r['id']}", disabled=True, use_container_width=True)
 
-    # TAB 4: VEHICLE & TRANSIT MARKETPLACE (WITH PHOTO UPLOADER & VIEWER)
+    # TAB 4: VEHICLE & TRANSIT MARKETPLACE
     with t4:
         st.subheader("🚲 Vehicle & Transit Marketplace")
         
@@ -293,7 +330,6 @@ else:
             mcon = col2.selectbox("Condition", ["Brand New", "Like New", "Good", "Fair"], key="m_cond")
             mloc = col2.text_input("Location", placeholder="e.g. Hostel 2 Bike Rack", key="m_loc")
             
-            # Photo upload option for second hand items
             m_photo = st.file_uploader("📷 Upload Item Photo", type=["jpg", "png", "jpeg"], key="m_photo")
 
             if st.button("Post Item to Marketplace", type="primary"):
@@ -312,7 +348,6 @@ else:
         for idx, item in enumerate(st.session_state.market_items):
             with mcols[idx % 2]:
                 with st.container():
-                    # Display item image (file uploader bytes or URL link)
                     if item.get("image"):
                         st.image(item["image"], use_container_width=True)
                     
