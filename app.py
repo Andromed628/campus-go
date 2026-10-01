@@ -5,7 +5,7 @@ import pandas as pd
 # 1. PAGE CONFIGURATION & CUSTOM GLASSMORPHISM STYLING
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Navigo | Campus Mobility & Marketplace",
+    page_title="Navigo | Campus Mobility & Vehicle Marketplace",
     page_icon="🧭",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -526,5 +526,4 @@ with tab_sharing:
     else:
         r_cols = st.columns(2)
         for idx, ride in enumerate(st.session_state.rides):
-            with r_cols[idx % 2]:
-    
+            with r_cols[idx % 
