@@ -5,8 +5,8 @@ import pandas as pd
 # 1. PAGE CONFIGURATION & CUSTOM GLASSMORPHISM STYLING
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Campus Go | P2P Mobility & Marketplace",
-    page_icon="⚡",
+    page_title="Navigo | Campus Mobility & Marketplace",
+    page_icon="🧭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -167,21 +167,30 @@ if "market_items" not in st.session_state:
     st.session_state.market_items = [
         {
             "id": "MKT-1",
-            "title": "Engineering Physics Textbook & Lab Manual",
-            "category": "Books & Notes",
-            "price": 250,
+            "title": "Hercules Roadeo 21-Speed Mountain Bike",
+            "category": "Bicycles",
+            "price": 2400,
             "seller": "sneha@cup.edu.in",
-            "condition": "Like New",
-            "location": "Hostel 2, Room 104"
+            "condition": "Good Condition",
+            "location": "Hostel 2 Bike Rack"
         },
         {
             "id": "MKT-2",
-            "title": "Foldable Wooden Study Table",
-            "category": "Furniture",
-            "price": 450,
+            "title": "TVS Wego 110cc (Campus Transfer)",
+            "category": "Scooters & Motorbikes",
+            "price": 18500,
             "seller": "amit@cup.edu.in",
-            "condition": "Good",
-            "location": "Hostel 1"
+            "condition": "Well Maintained",
+            "location": "Hostel 1 Parking"
+        },
+        {
+            "id": "MKT-3",
+            "title": "Studds Full-Face Helmet (Size M)",
+            "category": "Vehicle Accessories",
+            "price": 550,
+            "seller": "vikram@cup.edu.in",
+            "condition": "Like New",
+            "location": "Hostel 3"
         }
     ]
 
@@ -217,12 +226,33 @@ def reservation_modal(vehicle):
             st.success("🎉 Vehicle Reserved Successfully!")
             st.rerun()
 
+@st.dialog("🚗 Hop-On Ride Booking")
+def hopon_modal(ride):
+    st.write(f"### Ride from **{ride['from_loc']}** ➔ **{ride['to_loc']}**")
+    st.write(f"⏰ **Departure Time:** {ride['time']}")
+    st.write(f"🚘 **Vehicle:** {ride['vehicle']}")
+    st.write(f"👤 **Driver Email:** {ride['driver']}")
+    st.write(f"📞 **Driver Phone:** `{ride['contact']}`")
+    st.write(f"💺 **Seats Available:** {ride['seats']}")
+    st.divider()
+    
+    passenger_phone = st.text_input("Your Contact Number", placeholder="+91 XXXXX XXXXX")
+    pickup_point = st.text_input("Specific Pickup Landmark", placeholder="e.g. Near Hostel 3 Gate")
+    
+    if st.button("🤝 Confirm Hop-On Request", use_container_width=True, type="primary"):
+        if not passenger_phone:
+            st.error("Please enter your contact number.")
+        else:
+            ride["seats"] -= 1
+            st.success(f"✅ Hop-On confirmed! Call Driver at **{ride['contact']}** for pickup.")
+            st.rerun()
+
 # -----------------------------------------------------------------------------
 # 4. SIDEBAR CONTROL PANEL
 # -----------------------------------------------------------------------------
 with st.sidebar:
     st.image("https://img.icons8.com/isometric-folders/100/26e07f/garage.png", width=60)
-    st.title("Control Panel")
+    st.title("Navigo Control")
     
     user_email = st.text_input("Current User Email", value="student@cup.edu.in")
     st.session_state["user_email"] = user_email
@@ -230,23 +260,23 @@ with st.sidebar:
     st.divider()
     interface_mode = st.radio(
         "Select Interface Mode",
-        ["🎓 Student View", "🚘 Driver Duty Mode"],
+        ["🧑‍🎓 Student Mode", "🛺 Driver Duty Mode"],
         index=0
     )
     
-    st.info("💡 **Campus Go Tip:** Verify ride timing & pre-rental vehicle conditions before starting trips!")
+    st.info("💡 **Navigo Tip:** Verify ride timing & pre-rental vehicle conditions before starting trips!")
 
 # -----------------------------------------------------------------------------
 # 5. MAIN HEADER
 # -----------------------------------------------------------------------------
-st.markdown('<div class="title-text">Campus Go</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-text">Unified Campus Mobility & P2P Marketplace • Central University of Punjab</div>', unsafe_allow_html=True)
+st.markdown('<div class="title-text">Navigo</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-text">Campus Mobility & Vehicle Marketplace • Central University of Punjab</div>', unsafe_allow_html=True)
 
 tab_radar, tab_rentals, tab_sharing, tab_market = st.tabs([
     "🛰️ Live Transit Radar",
     "🛵 P2P Rentals & Inspection",
     "🚗 Hop-On Sharing",
-    "🛒 Marketplace"
+    "🚲 Vehicle Marketplace"
 ])
 
 # -----------------------------------------------------------------------------
@@ -497,82 +527,4 @@ with tab_sharing:
         r_cols = st.columns(2)
         for idx, ride in enumerate(st.session_state.rides):
             with r_cols[idx % 2]:
-                st.markdown(f"""
-                <div class="custom-card">
-                    <h4>🚗 {ride['from_loc']} ➔ {ride['to_loc']}</h4>
-                    <p>⏰ <b>Departure:</b> {ride['time']} &nbsp;|&nbsp; 🚘 <b>Vehicle:</b> {ride['vehicle']}</p>
-                    <p>👤 <b>Driver:</b> <span style="color:#58a6ff;">{ride['driver']}</span></p>
-                    <p><span class="badge-tag">💺 Available Seats: {ride['seats']}</span></p>
-                </div>
-                """, unsafe_allow_html=True)
-
-                if st.button(f"🤝 Hop-On with {ride['driver'].split('@')[0].capitalize()}", key=f"hop_{ride['id']}", use_container_width=True):
-                    if ride["seats"] > 0:
-                        ride["seats"] -= 1
-                        st.success(f"✅ Hop-On confirmed! Contact Driver: {ride['contact']}")
-                        st.rerun()
-                    else:
-                        st.error("Sorry, no seats left on this ride!")
-
-# -----------------------------------------------------------------------------
-# 9. TAB 4: STUDENT MARKETPLACE
-# -----------------------------------------------------------------------------
-with tab_market:
-    st.write("## 🛒 Campus Peer-to-Peer Marketplace")
-    st.caption("Buy and sell second-hand study material, hostel furniture, and electronics safely within campus.")
-
-    m1, m2 = st.columns(2)
-    m1.metric("Active Marketplace Listings", f"{len(st.session_state.market_items)} Items")
-    m2.metric("Campus Hub", "Central University of Punjab")
-
-    st.divider()
-
-    # Form: List Item for Sale
-    with st.expander("🛍️ **Post an Item for Sale**", expanded=False):
-        mc1, mc2 = st.columns(2)
-        with mc1:
-            m_title = st.text_input("Item Title", placeholder="e.g. Drafter / Lab Coat / Mattress")
-            m_category = st.selectbox("Category", ["Books & Notes", "Electronics", "Furniture", "Lab Gear", "Sports & Other"])
-            m_price = st.number_input("Selling Price (₹)", min_value=0, value=150, step=50)
-        with mc2:
-            m_cond = st.selectbox("Condition", ["Brand New", "Like New", "Good", "Fair"])
-            m_loc = st.text_input("Item Location / Pickup Hostel", placeholder="e.g. Hostel 2 Room 305")
-        
-        m_photo = st.file_uploader("Upload Item Photo (Optional)", type=["jpg", "png", "jpeg"], key="mkt_upload")
-
-        if st.button("Post Item to Marketplace", type="primary"):
-            if m_title and m_loc:
-                new_item = {
-                    "id": f"MKT-{len(st.session_state.market_items)+1}",
-                    "title": m_title,
-                    "category": m_category,
-                    "price": m_price,
-                    "seller": user_email,
-                    "condition": m_cond,
-                    "location": m_loc
-                }
-                st.session_state.market_items.append(new_item)
-                st.success("✨ Item listed on campus marketplace!")
-                st.rerun()
-            else:
-                st.error("Please fill in the Item Title and Pickup Location.")
-
-    st.write("### 🛍️ Browse Items for Sale")
-
-    if not st.session_state.market_items:
-        st.info("No items listed in the marketplace yet.")
-    else:
-        m_grid = st.columns(2)
-        for idx, item in enumerate(st.session_state.market_items):
-            with m_grid[idx % 2]:
-                st.markdown(f"""
-                <div class="custom-card">
-                    <h4>📦 {item['title']}</h4>
-                    <p>💵 <b>Price:</b> ₹{item['price']} &nbsp;|&nbsp; 🏷️ <b>Category:</b> {item['category']}</p>
-                    <p>✨ <b>Condition:</b> {item['condition']} &nbsp;|&nbsp; 📍 <b>Pickup:</b> {item['location']}</p>
-                    <p>👤 <b>Seller:</b> <span style="color:#58a6ff;">{item['seller']}</span></p>
-                </div>
-                """, unsafe_allow_html=True)
-
-                if st.button(f"💬 Contact Seller ({item['seller'].split('@')[0]})", key=f"mkt_btn_{item['id']}", use_container_width=True):
-                    st.info(f"📩 Reach out directly via email to **{item['seller']}** or visit **{item['location']}**!")
+    
