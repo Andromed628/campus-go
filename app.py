@@ -37,48 +37,56 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 2. SESSION STATE INITIALIZATION
+# 2. SHARED GLOBAL BACKEND MEMORY (MULTIPLE DEVICES SYNC HERE)
 # --------------------------------------------------
-if "shuttles" not in st.session_state:
-    st.session_state.shuttles = [
-        {"Vehicle": "⚡ E-Cart #1 (Hostel Shuttle)", "lat": 30.1553, "lon": 74.9387, "Status": "Moving -> Academic Block", "Speed": "14 km/h"},
-        {"Vehicle": "⚡ E-Cart #2 (Library Line)", "lat": 30.1538, "lon": 74.9365, "Status": "Boarding at Hostel 3", "Speed": "0 km/h"},
-        {"Vehicle": "🚌 Main Gate Express", "lat": 30.1570, "lon": 74.9405, "Status": "Arriving Main Gate", "Speed": "18 km/h"}
-    ]
+@st.cache_resource
+def get_global_database():
+    return {
+        "shuttles": [
+            {
+                "Vehicle": "⚡ E-Cart #1 (Hostel Shuttle)",
+                "lat": 30.1553, "lon": 74.9387,
+                "Status": "Moving -> Academic Block",
+                "Speed": "14 km/h",
+                "Driver_Email": "driver.harpreet@cup.edu.in",
+                "Last_Sync": "12:28 PM"
+            },
+            {
+                "Vehicle": "⚡ E-Cart #2 (Library Line)",
+                "lat": 30.1538, "lon": 74.9365,
+                "Status": "Boarding at Hostel 3",
+                "Speed": "0 km/h",
+                "Driver_Email": "driver.gurpreet@cup.edu.in",
+                "Last_Sync": "12:25 PM"
+            },
+            {
+                "Vehicle": "🚌 Main Gate Express",
+                "lat": 30.1570, "lon": 74.9405,
+                "Status": "Arriving Main Gate",
+                "Speed": "18 km/h",
+                "Driver_Email": "driver.singh@cup.edu.in",
+                "Last_Sync": "12:20 PM"
+            }
+        ],
+        "vehicles": [
+            {"id": "RNT-101", "model": "Hero Hawk 21-Speed", "type": "Bicycle", "rate": 10, "location": "Hostel 3 Rack", "security": "Student ID", "owner": "sneha@cup.edu.in", "status": "Available"},
+            {"id": "RNT-102", "model": "TVS Jupiter 125", "type": "Scooty", "rate": 35, "location": "Main Gate", "security": "₹500 Deposit", "owner": "rahul@cup.edu.in", "status": "Available"}
+        ],
+        "active_rentals": [],
+        "rides": [
+            {"id": "RIDE-1", "driver": "rahul@cup.edu.in", "from_loc": "Hostel 3", "to_loc": "Academic Block", "time": "09:15 AM", "seats": 2, "vehicle": "TVS Jupiter", "contact": "9876543210"},
+            {"id": "RIDE-2", "driver": "priya@cup.edu.in", "from_loc": "Main Gate", "to_loc": "Library", "time": "10:30 AM", "seats": 1, "vehicle": "Electric Scooter", "contact": "9123456789"}
+        ],
+        "market_items": [
+            {
+                "id": "MKT-1", "title": "Hercules Roadeo MTB", "category": "Bicycles", 
+                "price": 2400, "seller": "sneha@cup.edu.in", "condition": "Good", 
+                "location": "Hostel 2", "image": "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500"
+            }
+        ]
+    }
 
-if "vehicles" not in st.session_state:
-    st.session_state.vehicles = [
-        {"id": "RNT-101", "model": "Hero Hawk 21-Speed", "type": "Bicycle", "rate": 10, "location": "Hostel 3 Rack", "security": "Student ID", "owner": "student@cup.edu.in", "status": "Available"},
-        {"id": "RNT-102", "model": "TVS Jupiter 125", "type": "Scooty", "rate": 35, "location": "Main Gate", "security": "₹500 Deposit", "owner": "rahul@cup.edu.in", "status": "Available"}
-    ]
-
-if "active_rentals" not in st.session_state:
-    st.session_state.active_rentals = []
-
-if "rides" not in st.session_state:
-    st.session_state.rides = [
-        {"id": "RIDE-1", "driver": "rahul@cup.edu.in", "from_loc": "Hostel 3", "to_loc": "Academic Block", "time": "09:15 AM", "seats": 2, "vehicle": "TVS Jupiter", "contact": "9876543210"},
-        {"id": "RIDE-2", "driver": "priya@cup.edu.in", "from_loc": "Main Gate", "to_loc": "Library", "time": "10:30 AM", "seats": 1, "vehicle": "Electric Scooter", "contact": "9123456789"}
-    ]
-
-if "market_items" not in st.session_state:
-    st.session_state.market_items = [
-        {
-            "id": "MKT-1", "title": "Hercules Roadeo MTB", "category": "Bicycles", 
-            "price": 2400, "seller": "sneha@cup.edu.in", "condition": "Good", 
-            "location": "Hostel 2", "image": "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500"
-        },
-        {
-            "id": "MKT-2", "title": "TVS Wego 110cc", "category": "Scooters", 
-            "price": 18500, "seller": "amit@cup.edu.in", "condition": "Well Maintained", 
-            "location": "Hostel 1", "image": "https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=500"
-        },
-        {
-            "id": "MKT-3", "title": "Studds Helmet (Size M)", "category": "Accessories", 
-            "price": 550, "seller": "vikram@cup.edu.in", "condition": "Like New", 
-            "location": "Hostel 3", "image": "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=500"
-        }
-    ]
+db = get_global_database()
 
 # --------------------------------------------------
 # 3. MODALS
@@ -93,7 +101,7 @@ def reservation_modal(v):
     if st.button("🚀 Confirm Booking", type="primary", use_container_width=True):
         if phone:
             v["status"] = "Reserved"
-            st.session_state.active_rentals.append({
+            db["active_rentals"].append({
                 "booking_id": f"BK-{v['id']}",
                 "vehicle": v, "phone": phone, "duration": duration,
                 "payment_status": "Pending", "before_photo": None, "after_photo": None,
@@ -119,17 +127,21 @@ def hopon_modal(r):
             st.error("Please enter contact number.")
 
 # --------------------------------------------------
-# 4. SIDEBAR - USER & MODE SWITCHER
+# 4. SIDEBAR - USER IDENTITY & MODE SWITCHER
 # --------------------------------------------------
 with st.sidebar:
     st.title("🧭 Navigo Control")
-    user_email = st.text_input("User Email", value="student@cup.edu.in")
+    user_email = st.text_input("Log In As (Email)", value="sneha@cup.edu.in")
+    st.caption(f"Connected Identity: `{user_email}`")
     st.divider()
     interface_mode = st.radio(
-        "Select Interface Mode",
+        "Select Active Interface Mode",
         ["🧑‍🎓 Student Mode", "🛺 Driver Duty Mode"],
         index=0
     )
+    st.divider()
+    if st.button("🔄 Pull Latest Cloud Sync", use_container_width=True):
+        st.rerun()
 
 st.markdown('<div class="title-text">Navigo</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-text">Campus Mobility & Vehicle Marketplace • Central University of Punjab</div>', unsafe_allow_html=True)
@@ -140,12 +152,13 @@ st.markdown('<div class="subtitle-text">Campus Mobility & Vehicle Marketplace �
 if interface_mode == "🛺 Driver Duty Mode":
     st.markdown('<span class="badge-driver">🛺 DRIVER DUTY CONTROL PANEL</span>', unsafe_allow_html=True)
     st.write("")
-    st.subheader("🚌 Manage Campus Shuttle GPS & Route")
+    st.info(f"👨‍✈️ **Active Driver Session:** `{user_email}`")
     
+    st.subheader("🚌 Manage Campus Shuttle GPS & Route Telemetry")
     col_d1, col_d2 = st.columns(2)
     with col_d1:
-        shuttle_names = [s["Vehicle"] for s in st.session_state.shuttles]
-        selected_shuttle = st.selectbox("Select Your Vehicle", shuttle_names)
+        shuttle_names = [s["Vehicle"] for s in db["shuttles"]]
+        selected_shuttle = st.selectbox("Select Assigned Vehicle", shuttle_names)
         new_status = st.selectbox("Current Shuttle Status", [
             "Moving -> Academic Block",
             "Boarding at Hostel 3",
@@ -155,20 +168,23 @@ if interface_mode == "🛺 Driver Duty Mode":
         ])
     
     with col_d2:
-        new_speed = st.slider("Current Speed (km/h)", 0, 30, 12)
-        on_duty = st.toggle("Active Duty Signal (Live GPS)", value=True)
+        new_speed = st.slider("Current Speed (km/h)", 0, 30, 14)
+        lat_shift = st.slider("Simulate Live GPS Movement (Latitude Offset)", -0.0050, 0.0050, 0.0000, step=0.0005)
     
-    if st.button("📡 Broadcast Real-Time GPS Update", type="primary"):
-        for s in st.session_state.shuttles:
+    if st.button("📡 Broadcast Live GPS to Campus Cloud", type="primary"):
+        for s in db["shuttles"]:
             if s["Vehicle"] == selected_shuttle:
                 s["Status"] = new_status
                 s["Speed"] = f"{new_speed} km/h"
-        st.success(f"Updated live GPS for {selected_shuttle}!")
+                s["lat"] = round(30.1553 + lat_shift, 4)
+                s["Driver_Email"] = user_email
+                s["Last_Sync"] = "Just Now"
+        st.success(f"Broadcasted live telemetry for {selected_shuttle}! Linked driver: {user_email}")
         st.rerun()
 
     st.divider()
     st.subheader("📋 Active Passenger Hop-On Requests")
-    st.dataframe(pd.DataFrame(st.session_state.rides), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(db["rides"]), use_container_width=True, hide_index=True)
 
 # --------------------------------------------------
 # 6. STUDENT MODE DASHBOARD (4 TABS)
@@ -180,15 +196,16 @@ else:
     with t1:
         st.subheader("🛰️ Live Campus Shuttle Radar")
         c1, c2, c3 = st.columns(3)
-        c1.metric("Active Fleet", f"{len(st.session_state.shuttles)} Shuttles")
-        c2.metric("Next Pickup", "~2 Mins")
-        c3.metric("GPS Sync", "🟢 Online")
+        c1.metric("Active Fleet", f"{len(db['shuttles'])} Shuttles")
+        c2.metric("Your Identity", user_email)
+        c3.metric("Cloud Connection", "🟢 Active Sync")
         
-        shuttles_df = pd.DataFrame(st.session_state.shuttles)
+        shuttles_df = pd.DataFrame(db["shuttles"])
         st.map(shuttles_df, latitude="lat", longitude="lon", size=25, zoom=15)
-        st.dataframe(shuttles_df[["Vehicle", "Status", "Speed"]], use_container_width=True, hide_index=True)
+        st.write("#### 🚌 Real-Time Shuttle Telemetry Stream")
+        st.dataframe(shuttles_df[["Vehicle", "Status", "Speed", "Driver_Email", "Last_Sync"]], use_container_width=True, hide_index=True)
 
-    # TAB 2: P2P RENTALS & INSPECTION / SECURITY
+    # TAB 2: P2P RENTALS
     with t2:
         st.subheader("🛵 Short-Term Vehicle Rentals")
         
@@ -201,16 +218,16 @@ else:
             v_sec = st.selectbox("Security Hold Requirement", ["Student ID", "Hostel ID", "₹200 Deposit", "₹500 Deposit"], key="add_sec")
             if st.button("Publish Listing", type="primary"):
                 if v_mod and v_loc:
-                    st.session_state.vehicles.append({
-                        "id": f"RNT-{len(st.session_state.vehicles)+101}",
+                    db["vehicles"].append({
+                        "id": f"RNT-{len(db['vehicles'])+101}",
                         "model": v_mod, "type": v_typ, "rate": v_rat,
                         "location": v_loc, "security": v_sec, "owner": user_email, "status": "Available"
                     })
-                    st.success("Listed!")
+                    st.success("Listed across live platform!")
                     st.rerun()
 
         st.write("### Available Vehicles")
-        avail = [v for v in st.session_state.vehicles if v["status"] == "Available"]
+        avail = [v for v in db["vehicles"] if v["status"] == "Available"]
         cols = st.columns(2)
         for idx, v in enumerate(avail):
             with cols[idx % 2]:
@@ -228,20 +245,17 @@ else:
         st.divider()
         st.subheader("📋 Active Rentals: Pre/Post Inspection & Security Management")
         
-        if not st.session_state.active_rentals:
-            st.info("No active rentals currently. Reserve a vehicle above to test inspection logs and security hold controls!")
+        if not db["active_rentals"]:
+            st.info("No active rentals currently in cloud memory. Reserve a vehicle above to test live inspection logs!")
         
-        for bk in st.session_state.active_rentals:
+        for bk in db["active_rentals"]:
             v = bk["vehicle"]
             with st.expander(f"🔑 Active Booking: `{bk['booking_id']}` — {v['model']}", expanded=True):
                 st.markdown(f"**Owner:** {v['owner']} | **Renter Phone:** {bk['phone']} | **Duration:** {bk['duration']} hrs")
-                
-                # Security Hold Box
                 st.info(f"🔒 **Security Hold Verification:** `{v['security']}` (Verified prior to key handover)")
                 
                 c_pre, c_post = st.columns(2)
                 
-                # Pre-Inspection
                 with c_pre:
                     st.markdown("#### 📸 1. Pre-Rental Inspection (Pickup)")
                     pre_photo = st.file_uploader("Upload Pickup Photo", type=["jpg", "png", "jpeg"], key=f"pre_pic_{bk['booking_id']}")
@@ -251,7 +265,6 @@ else:
                     pre_notes = st.text_area("Pre-existing Scratches / Notes", placeholder="e.g. Minor scratch on rear mudguard", key=f"pre_note_{bk['booking_id']}")
                     bk["pre_notes"] = pre_notes
 
-                # Post-Inspection
                 with c_post:
                     st.markdown("#### 📸 2. Post-Rental Inspection (Return)")
                     post_photo = st.file_uploader("Upload Return Photo", type=["jpg", "png", "jpeg"], key=f"post_pic_{bk['booking_id']}")
@@ -274,7 +287,7 @@ else:
                         st.warning("Please verify and check 'Security Hold Released' before returning the vehicle!")
                     else:
                         v["status"] = "Available"
-                        st.session_state.active_rentals.remove(bk)
+                        db["active_rentals"].remove(bk)
                         st.success("Trip finalized! Security hold released and vehicle returned to available fleet.")
                         st.rerun()
 
@@ -292,17 +305,17 @@ else:
             rcon = col2.text_input("Contact", key="r_con")
             if st.button("Offer Ride", type="primary"):
                 if rf and rt and rcon:
-                    st.session_state.rides.append({
-                        "id": f"RIDE-{len(st.session_state.rides)+1}",
+                    db["rides"].append({
+                        "id": f"RIDE-{len(db['rides'])+1}",
                         "driver": user_email, "from_loc": rf, "to_loc": rt,
                         "time": rtime, "seats": int(rsea), "vehicle": rv or "Personal", "contact": rcon
                     })
-                    st.success("Ride Offered!")
+                    st.success("Ride Offered across live database!")
                     st.rerun()
 
         st.write("### Active Rides")
         rcols = st.columns(2)
-        for idx, r in enumerate(st.session_state.rides):
+        for idx, r in enumerate(db["rides"]):
             with rcols[idx % 2]:
                 st.markdown(f"""
                 <div class="custom-card">
@@ -334,18 +347,18 @@ else:
 
             if st.button("Post Item to Marketplace", type="primary"):
                 if mt and mloc:
-                    st.session_state.market_items.append({
-                        "id": f"MKT-{len(st.session_state.market_items)+1}",
+                    db["market_items"].append({
+                        "id": f"MKT-{len(db['market_items'])+1}",
                         "title": mt, "category": mc, "price": mp,
                         "seller": user_email, "condition": mcon, "location": mloc,
                         "image": m_photo if m_photo else "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500"
                     })
-                    st.success("Item posted successfully with photo!")
+                    st.success("Item posted live!")
                     st.rerun()
 
-        st.write("### 🛍️ Browse Secondhand Items For Sale")
+        st.write("### 🛍 Browse Secondhand Items For Sale")
         mcols = st.columns(2)
-        for idx, item in enumerate(st.session_state.market_items):
+        for idx, item in enumerate(db["market_items"]):
             with mcols[idx % 2]:
                 with st.container():
                     if item.get("image"):
@@ -362,3 +375,4 @@ else:
                     
                     if st.button("💬 Contact Seller", key=f"mkt_{item['id']}", use_container_width=True):
                         st.info(f"Reach out directly via email to: **{item['seller']}**")
+
