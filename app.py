@@ -5,7 +5,7 @@ import pandas as pd
 # 1. PAGE CONFIG & CUSTOM STYLING
 # --------------------------------------------------
 st.set_page_config(
-    page_title="Navigo | Campus Mobility",
+    page_title="CampusWheel | Campus Mobility",
     page_icon="🧭",
     layout="wide"
 )
@@ -130,7 +130,7 @@ def hopon_modal(r):
 # 4. SIDEBAR - USER IDENTITY & MODE SWITCHER
 # --------------------------------------------------
 with st.sidebar:
-    st.title("🧭 Navigo Control")
+    st.title("🧭 CampusWheel Control")
     user_email = st.text_input("Log In As (Email)", value="sneha@cup.edu.in")
     st.caption(f"Connected Identity: `{user_email}`")
     st.divider()
@@ -143,7 +143,7 @@ with st.sidebar:
     if st.button("🔄 Pull Latest Cloud Sync", use_container_width=True):
         st.rerun()
 
-st.markdown('<div class="title-text">Navigo</div>', unsafe_allow_html=True)
+st.markdown('<div class="title-text">CampusWheel</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-text">Campus Mobility & Vehicle Marketplace • Central University of Punjab</div>', unsafe_allow_html=True)
 
 # --------------------------------------------------
