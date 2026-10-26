@@ -33,6 +33,14 @@ st.markdown("""
         border: 1px solid rgba(234, 179, 8, 0.4);
         padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
     }
+    .card-open {
+        background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.4);
+        padding: 12px; border-radius: 8px; margin-bottom: 10px;
+    }
+    .card-full {
+        background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4);
+        padding: 12px; border-radius: 8px; margin-bottom: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -48,6 +56,7 @@ def get_global_database():
                 "lat": 30.1553, "lon": 74.9387,
                 "Status": "Moving -> Academic Block",
                 "Speed": "14 km/h",
+                "Vacant_Seats": "🟢 3 Seats Available",
                 "Driver_Email": "driver.harpreet@cup.edu.in",
                 "Last_Sync": "12:28 PM"
             },
@@ -56,6 +65,7 @@ def get_global_database():
                 "lat": 30.1538, "lon": 74.9365,
                 "Status": "Boarding at Hostel 3",
                 "Speed": "0 km/h",
+                "Vacant_Seats": "🔴 Vehicle Full",
                 "Driver_Email": "driver.gurpreet@cup.edu.in",
                 "Last_Sync": "12:25 PM"
             },
@@ -64,10 +74,17 @@ def get_global_database():
                 "lat": 30.1570, "lon": 74.9405,
                 "Status": "Arriving Main Gate",
                 "Speed": "18 km/h",
+                "Vacant_Seats": "🟢 2 Seats Available",
                 "Driver_Email": "driver.singh@cup.edu.in",
                 "Last_Sync": "12:20 PM"
             }
         ],
+        "demand_pings": {
+            "Central Canteen": 14,
+            "RLB Girls Hostel": 8,
+            "Academic Block / Library": 5,
+            "Main Gate": 2
+        },
         "vehicles": [
             {"id": "RNT-101", "model": "Hero Hawk 21-Speed", "type": "Bicycle", "rate": 10, "location": "Hostel 3 Rack", "security": "Student ID", "owner": "sneha@cup.edu.in", "status": "Available"},
             {"id": "RNT-102", "model": "TVS Jupiter 125", "type": "Scooty", "rate": 35, "location": "Main Gate", "security": "₹500 Deposit", "owner": "rahul@cup.edu.in", "status": "Available"}
@@ -154,33 +171,51 @@ if interface_mode == "🛺 Driver Duty Mode":
     st.write("")
     st.info(f"👨‍✈️ **Active Driver Session:** `{user_email}`")
     
-    st.subheader("🚌 Manage Campus Shuttle GPS & Route Telemetry")
+    st.subheader("🚌 Manage Campus Shuttle GPS & Seat Vacancy Telemetry")
     col_d1, col_d2 = st.columns(2)
     with col_d1:
         shuttle_names = [s["Vehicle"] for s in db["shuttles"]]
         selected_shuttle = st.selectbox("Select Assigned Vehicle", shuttle_names)
-        new_status = st.selectbox("Current Shuttle Status", [
+        new_status = st.selectbox("Current Route Status", [
             "Moving -> Academic Block",
             "Boarding at Hostel 3",
             "Boarding at Main Gate",
             "Moving -> Central Library",
             "Idle at Parking"
         ])
-    
+        v_seat_status = st.radio("Broadcast Vacant Seat Status to Map", ["🟢 Seats Open", "🔴 Vehicle Full"], horizontal=True)
+
     with col_d2:
         new_speed = st.slider("Current Speed (km/h)", 0, 30, 14)
+        if v_seat_status == "🟢 Seats Open":
+            v_count = st.slider("Available Seats Count", 1, 4, 3)
+            formatted_seat_str = f"🟢 {v_count} Seats Available"
+        else:
+            formatted_seat_str = "🔴 Vehicle Full"
+            st.caption("Broadcasting: **🔴 Vehicle Full** to Student Radar")
+            
         lat_shift = st.slider("Simulate Live GPS Movement (Latitude Offset)", -0.0050, 0.0050, 0.0000, step=0.0005)
     
-    if st.button("📡 Broadcast Live GPS to Campus Cloud", type="primary"):
+    if st.button("📡 Broadcast Live GPS & Vacancy to Campus Cloud", type="primary"):
         for s in db["shuttles"]:
             if s["Vehicle"] == selected_shuttle:
                 s["Status"] = new_status
                 s["Speed"] = f"{new_speed} km/h"
+                s["Vacant_Seats"] = formatted_seat_str
                 s["lat"] = round(30.1553 + lat_shift, 4)
                 s["Driver_Email"] = user_email
                 s["Last_Sync"] = "Just Now"
-        st.success(f"Broadcasted live telemetry for {selected_shuttle}! Linked driver: {user_email}")
+        st.success(f"Broadcasted live telemetry for {selected_shuttle}! Seat Status: {formatted_seat_str}")
         st.rerun()
+
+    st.divider()
+    st.subheader("🔥 Live Student Demand Heatmap (Student Crowd Pings)")
+    st.caption("Real-time passenger clusters aggregated from student 'I'm Waiting' votes:")
+    
+    h_cols = st.columns(4)
+    for idx, (location, count) in enumerate(db["demand_pings"].items()):
+        with h_cols[idx % 4]:
+            st.metric(label=f"📍 {location}", value=f"{count} Waiting")
 
     st.divider()
     st.subheader("📋 Active Passenger Hop-On Requests")
@@ -194,7 +229,7 @@ else:
 
     # TAB 1: LIVE RADAR
     with t1:
-        st.subheader("🛰️ Live Campus Shuttle Radar")
+        st.subheader("🛰️ Live Campus Shuttle & Vacancy Radar")
         c1, c2, c3 = st.columns(3)
         c1.metric("Active Fleet", f"{len(db['shuttles'])} Shuttles")
         c2.metric("Your Identity", user_email)
@@ -202,8 +237,23 @@ else:
         
         shuttles_df = pd.DataFrame(db["shuttles"])
         st.map(shuttles_df, latitude="lat", longitude="lon", size=25, zoom=15)
+        
+        st.divider()
+        st.subheader("🙋 Smart Crowd Ping (Demand Voting)")
+        st.caption("Tap your location to notify nearby drivers where passenger crowds are waiting:")
+        cp_col1, cp_col2 = st.columns([2, 1])
+        with cp_col1:
+            ping_loc = st.selectbox("Select Your Current Hub Location:", list(db["demand_pings"].keys()))
+        with cp_col2:
+            st.write("")
+            st.write("")
+            if st.button("📍 I'm Waiting Here! (Vote Pickup Demand)", type="primary", use_container_width=True):
+                db["demand_pings"][ping_loc] += 1
+                st.success(f"Demand Ping recorded for **{ping_loc}**! Nearby drivers alerted on heatmap.")
+                st.rerun()
+
         st.write("#### 🚌 Real-Time Shuttle Telemetry Stream")
-        st.dataframe(shuttles_df[["Vehicle", "Status", "Speed", "Driver_Email", "Last_Sync"]], use_container_width=True, hide_index=True)
+        st.dataframe(shuttles_df[["Vehicle", "Status", "Vacant_Seats", "Speed", "Driver_Email", "Last_Sync"]], use_container_width=True, hide_index=True)
 
     # TAB 2: P2P RENTALS
     with t2:
@@ -375,4 +425,3 @@ else:
                     
                     if st.button("💬 Contact Seller", key=f"mkt_{item['id']}", use_container_width=True):
                         st.info(f"Reach out directly via email to: **{item['seller']}**")
-
